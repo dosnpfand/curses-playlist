@@ -1,5 +1,6 @@
 import os
 import pickle
+import threading
 from typing import List, Union
 
 from tqdm import tqdm
@@ -26,13 +27,21 @@ class VideoStore:
 
         # load cache
         self.cache_file_name = cache_file_name
-        local_db = dict()
+        self.local_db = dict()
         try:
             with open(cache_file_name, "rb") as f:
                 full_db = pickle.load(f)
         except IOError:
+            print("no videostore found, indexing ... pls restart afterwards.`")
             full_db = dict()
 
+        self.full_db = full_db
+        # Create and start a thread
+        self.update_thread = threading.Thread(target=self.update_videostore(), args=())
+        self.update_thread.start()
+        print("found %i files" % len(self.local_db))
+
+    def update_videostore(self):
         # load files from filesystem
         with StopWatch("filewalk"):
             candidate_paths = self.grab_files_from_disk()
@@ -45,28 +54,24 @@ class VideoStore:
 
                 el = VideoFile(path)
                 canonical_path = el.canonical_path
-                if canonical_path not in full_db:
+                if canonical_path not in self.full_db:
                     modified = True
                     try:
                         el.get_stats()
-                        full_db[canonical_path] = el
-                        local_db[canonical_path] = el
+                        self.full_db[canonical_path] = el
+                        self.local_db[canonical_path] = el
                     except OSError:
                         print(f"\nWARNING: Cannot parse {el}, not adding.")
                 else:
-                    local_db[canonical_path] = full_db[canonical_path]
+                    self.local_db[canonical_path] = self.full_db[canonical_path]
 
                 if idx % 10 == 0 and modified:
                     with open(self.cache_file_name, "wb") as f:
-                        pickle.dump(full_db, f)
+                        pickle.dump(self.full_db, f)
                         modified = False
 
         with open(self.cache_file_name, "wb") as f:
-            pickle.dump(full_db, f)
-
-        self.full_db = full_db
-        self.local_db = local_db
-        print("found %i files" % len(self.local_db))
+            pickle.dump(self.full_db, f)
 
     def get_file_list(self):
         with StopWatch("sort by modification time"):

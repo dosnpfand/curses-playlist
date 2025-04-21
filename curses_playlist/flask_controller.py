@@ -1,13 +1,14 @@
-import ctypes
+import socket
 import threading
 from contextlib import contextmanager
 from flask import Flask, jsonify, render_template, request
 from werkzeug.serving import make_server
 
-from curses_playlist.tools import blank_screen, start_blank_screen
+from curses_playlist.tools import start_blank_screen
 
 
 app = Flask(__name__)
+
 
 class ServerThread(threading.Thread):
 
@@ -24,6 +25,7 @@ class ServerThread(threading.Thread):
     def shutdown(self):
         self.server.shutdown()
 
+
 # VLC control commands mapping
 COMMANDS = {
     'pause': 'pause\n',
@@ -33,7 +35,6 @@ COMMANDS = {
     'fullscreen': 'f',
 }
 
-import socket
 
 def run_command(command):
     """
@@ -43,7 +44,6 @@ def run_command(command):
     port = 44500
     command = command.strip()
     print(f"looking up {command}")
-
 
     # Convert the command to the VLC remote control command
     if command in COMMANDS:
@@ -58,7 +58,8 @@ def run_command(command):
             sock.sendall(vlc_command.encode('utf-8'))
             print(f"Executed command: {command}")
     except ConnectionRefusedError:
-        print("Failed to connect to VLC remote control interface. Make sure VLC is running with '--intf rc --rc-host localhost:12345'.")
+        print("Failed to connect to VLC remote control interface. "
+              "Make sure VLC is running with '--intf rc --rc-host localhost:12345'.")
     except Exception as e:
         print(f"Error executing command: {e}")
 
@@ -97,6 +98,7 @@ def run_flask_server():
     Run the Flask server in a separate thread.
     """
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+
 
 @contextmanager
 def flask_vlc_context():

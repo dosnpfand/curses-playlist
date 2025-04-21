@@ -78,6 +78,9 @@ class PlistController:
         if self.state.mode == GUIState.WRITE:
             self.write_playlist()
 
+        print("watining for update videostore.")
+        video_store.update_thread.join()
+
     def write_playlist(self):
         """
         Write out playlist to disk that is understood my mplayer or vlc.

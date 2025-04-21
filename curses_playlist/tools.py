@@ -19,7 +19,6 @@ class StopWatch:
         print(f"{self.info}: {dt:0.3f}s")
 
 
-
 # Create a full-screen black window
 def blank_screen(top: bool = False):
     root = tk.Tk()
@@ -28,6 +27,7 @@ def blank_screen(top: bool = False):
         root.attributes('-topmost', True)  # Keep the window on top
     root.config(bg='black')
     root.mainloop()
+
 
 # Function to start the Tkinter window in a separate thread
 def start_blank_screen(top: bool = False):
