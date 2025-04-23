@@ -40,12 +40,16 @@ class VideoStore:
         self.update_thread.start()
 
     def update_videostore(self):
+        """
+        Update videostore and check for consistency wrt. deletion / renaming
+        """
         # load files from filesystem
         with StopWatch("filewalk"):
             candidate_paths = self.grab_files_from_disk()
 
+        # check: paths that are not yet in db
         modified = False
-        with StopWatch("populate Videostore"):
+        with StopWatch("check: paths in videostore"):
             for idx, path in tqdm(
                 enumerate(candidate_paths), total=len(candidate_paths)
             ):
@@ -64,6 +68,16 @@ class VideoStore:
                     with open(self.cache_file_name, "wb") as f:
                         pickle.dump(self.full_db, f)
                         modified = False
+
+        # check: deletion / renaming
+        db_keys = set(self.full_db.keys())
+        canonical_paths = {VideoFile(el).canonical_path for el in candidate_paths}
+        diff = db_keys - canonical_paths
+
+        print(f"DB elements with no file counterpart: {diff}")
+
+        for el in diff:
+            del self.full_db[el]
 
         with open(self.cache_file_name, "wb") as f:
             pickle.dump(self.full_db, f)
@@ -108,3 +122,7 @@ class VideoStore:
         ]
 
         return all_files
+
+if __name__ == '__main__':
+    os.chdir(r"Z:\diverse\porn\scenes")
+    vs = VideoStore()
