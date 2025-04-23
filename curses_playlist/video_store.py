@@ -27,19 +27,17 @@ class VideoStore:
 
         # load cache
         self.cache_file_name = cache_file_name
-        self.local_db = dict()
         try:
             with open(cache_file_name, "rb") as f:
-                full_db = pickle.load(f)
+                self.full_db = pickle.load(f)
+                print(f"loaded {len(self.full_db)} files")
         except IOError:
             print("no videostore found, indexing ... pls restart afterwards.`")
-            full_db = dict()
+            self.full_db = dict()
 
-        self.full_db = full_db
-        # Create and start a thread
-        self.update_thread = threading.Thread(target=self.update_videostore(), args=())
+        # Create and start a thread for updating DB
+        self.update_thread = threading.Thread(target=self.update_videostore)
         self.update_thread.start()
-        print("found %i files" % len(self.local_db))
 
     def update_videostore(self):
         # load files from filesystem
@@ -59,11 +57,8 @@ class VideoStore:
                     try:
                         el.get_stats()
                         self.full_db[canonical_path] = el
-                        self.local_db[canonical_path] = el
                     except OSError:
                         print(f"\nWARNING: Cannot parse {el}, not adding.")
-                else:
-                    self.local_db[canonical_path] = self.full_db[canonical_path]
 
                 if idx % 10 == 0 and modified:
                     with open(self.cache_file_name, "wb") as f:
@@ -75,7 +70,7 @@ class VideoStore:
 
     def get_file_list(self):
         with StopWatch("sort by modification time"):
-            flist = [self.local_db[key] for key in self.local_db]
+            flist = [self.full_db[key] for key in self.full_db]
             flist.sort(
                 key=lambda el: el.stat.st_ctime, reverse=True
             )  # sort by modification time, newest fist
@@ -83,7 +78,7 @@ class VideoStore:
 
     def retrieve_video_file(self, name: str) -> Union[VideoFile, None]:
         tmp = VideoFile(name)
-        return self.local_db.get(tmp.canonical_path, None)
+        return self.full_db.get(tmp.canonical_path, None)
 
     @staticmethod
     def grab_files_from_disk() -> List[str]:
