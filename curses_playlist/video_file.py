@@ -40,8 +40,7 @@ class VideoFile:
         try:
             tmp_video = VideoFileClip(self.locale_path)
             self.duration = timedelta(seconds=tmp_video.duration)
-            tmp_video.reader.close()
-            tmp_video.audio.reader.close_proc()
+            tmp_video.close()
         except UnicodeDecodeError:
             self.duration = None
 
